@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make a Axios constructor according to the axios source code</title>
+</head>
+
+<body>
+
+  <script>
+    function Axios(config) {
+      // Initiation 
+      this.default = config; //set the default atrribue
+      this.intercepters = {  //set the intercepter attribute
+        request: {},
+        response: {}
+      }
+    }
+
+    // Add function to the prototype
+    Axios.prototype.request = function (config) {
+      console.log(`Send AJAX request, Type: ${config.method}`);
+    }
+
+    Axios.prototype.get = function (config) {
+      return this.request({ method: 'GET' });
+    }
+
+    Axios.prototype.post = function (config) {
+      return this.request({ method: 'Post' });
+    }
+
+    // Make a createInstance functon
+    function createInstance(config) {
+      // make a instance of Axios
+
+      const context = new Axios(config); // new we can use the instance, but can not use it as a function
+      // Create a request function
+      const instance = Axios.prototype.request.bind(context); // Bind the Axios's request function to the context
+
+      // Add the all function from Axios prototype to the instance
+      Object.keys(Axios.prototype).forEach(key => {
+        instance[key] = Axios.prototype[key].bind(context);
+      })
+
+      // Add the all attribute from Axios to the instance
+      Object.keys(context).forEach(key => {
+        instance[key] = context[key];
+      })
+
+      return instance;
+    }
+
+    let axios = createInstance();
+
+    // Test the axios can be used as fucntion
+    axios({ method: 'Post' });
+
+    // Test the axios can be used as instance
+    axios.get();
+  </script>
+
+</body>
+
+</html>
