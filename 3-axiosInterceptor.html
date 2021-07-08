@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock the process of axios intercepters</title>
+
+  <script>
+    // construction
+    function Axios(config) {
+      this.config = config;
+      this.interceptors = {
+        request: new InterceptorManager(),
+        response: new InterceptorManager(),
+      }
+    }
+
+    Axios.prototype.request = function (config) {
+      let promise = Promise.resolve(config);
+      const chains = [dispatchRequest, undefined];
+      // handle the interceptor
+      // push the request interceptor to the front of chain
+      this.interceptors.request.handlers.forEach(item => {
+        chains.unshift(item.fulfiled, item.rejected);
+      })
+      this.interceptors.response.handlers.forEach(item => {
+        chains.push(item.fulfiled, item.rejected);
+      })
+      console.log(chains);
+
+      while (chains.length > 0) {
+        promise = promise.then(chains.shift(), chains.shift());
+      }
+
+      return promise;
+    }
+
+    function dispatchRequest(config) {
+      return new Promise((resolve, rejected) => {
+        resolve({
+          status: 200,
+          statustext: 'ok'
+        })
+      })
+    }
+    // create axios function
+    let context = new Axios({});
+    let axios = Axios.prototype.request.bind(context);
+    Object.keys(context).forEach(key => {
+      axios[key] = context[key];
+    })
+
+    // intercepter manager constructor
+    function InterceptorManager() {
+      this.handlers = [];
+    }
+
+    InterceptorManager.prototype.use = function (fulfiled, rejected) {
+      this.handlers.push({
+        fulfiled,
+        rejected
+      });
+    }
+
+
+    // set up request interceptor
+    axios.interceptors.request.use(function one(config) {
+      console.log('request interceptor success - No.1')
+      return config;
+    }, function one(error) {
+      console.log('request interceptor fail - No.1')
+      return Promise.reject(error);
+    });
+
+    axios.interceptors.request.use(function two(config) {
+      console.log('request interceptor success - No.2')
+      return config;
+    }, function two(error) {
+      console.log('request interceptor fail - No.2')
+      return Promise.reject(error);
+    });
+    axios.interceptors.response.use(function one(config) {
+      console.log('response interceptor success - No.1')
+      return config;
+    }, function one(error) {
+      console.log('response interceptor fail - No.1')
+      return Promise.reject(error);
+    });
+    axios.interceptors.response.use(function two(config) {
+      console.log('response interceptor success - No.2')
+      return config;
+    }, function two(error) {
+      console.log('response interceptor fail - No.2')
+      return Promise.reject(error);
+    });
+
+    axios({
+      method: 'GET',
+      url: 'https://api.apiopen.top/getJoke',
+    }).then(response => {
+      console.log(response);
+    })
+  </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
